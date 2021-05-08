@@ -4,12 +4,37 @@ import matplotlib.colors as colors
 from scipy import signal
 from scipy.io import wavfile
 import pandas as pd
+from scipy.signal import savgol_filter
+
 
 # https://stackoverflow.com/questions/44787437/how-to-convert-a-wav-file-to-a-spectrogram-in-python3
 
 FILENAME = '2021_05_08_203330.903333'
 
 sample_rate, samples = wavfile.read(f'output/{FILENAME}.wav')
+
+
+frequencies, times, spectrogram = signal.spectrogram(samples, fs=sample_rate, nfft=512)
+
+
+myfreq = spectrogram[80:100, :]
+myfreq = np.max(myfreq, axis=0)
+myfreq = savgol_filter(myfreq, 10, 2)
+
+
+#plt.plot(samples)
+plt.plot(np.arange(0, 250000, 225), np.log1p(myfreq[:1112])*500)
+
+"""
+plt.pcolormesh(
+    times, frequencies, spectrogram,
+    norm=colors.LogNorm(vmin=np.min(spectrogram), vmax=np.max(spectrogram))
+)
+"""
+
+plt.show()
+
+"""
 
 audio_over_threshold = []
 keystroke_threshold = 2000
@@ -35,6 +60,7 @@ for idx, logged_keystroke in logged_keystrokes.iterrows():
 
     elif logged_keystroke['direction'] == 'up':
         current_keystroke['up'] = logged_keystroke['timestamp'] - offset_time + keystroke_up_offset
+        current_keystroke['up'] = current_keystroke['down'] + 0.32
         keystrokes.append(current_keystroke)
         current_keystroke = {}
 
@@ -47,7 +73,7 @@ for keystroke in keystrokes:
 plt.show()
 
 
-
+"""
 
 
 """
