@@ -1,4 +1,6 @@
 pygame
 pandas
-pyaudio
-# https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+pyaudio # https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+matplotlib
+numpy
+scipy

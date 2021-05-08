@@ -46,7 +46,7 @@ class Audio:
         self.stream.close()
         self.p.terminate()
 
-        wf = wave.open("output/" + time_string + "_audio_recording.wav", 'wb')
+        wf = wave.open("output/" + time_string + ".wav", 'wb')
         wf.setnchannels(self.CHANNELS)
         wf.setsampwidth(self.p.get_sample_size(self.FORMAT))
         wf.setframerate(self.RATE)

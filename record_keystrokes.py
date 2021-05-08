@@ -1,3 +1,5 @@
+from time import sleep
+
 import pandas as pd
 import datetime
 import pygame
@@ -36,7 +38,7 @@ stopTextRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
 def save_to_file(key_strokes, time_string):
     df = pd.DataFrame(key_strokes)
-    df.to_csv(f"output/{time_string}_keystroke_recording.csv")
+    df.to_csv(f"output/{time_string}.csv")
 
 
 key_presses = []
@@ -55,19 +57,22 @@ while running:
                 audio_recording.stop_recording(time_string)
             running = False
 
-        if event.type == KEYDOWN and event.key == K_RETURN and not recording_started:
-            infoText = recordText
-            textRect = recordTextRect
-            recording_start_timestamp = datetime.datetime.now().timestamp()
-            audio_recording.start_recording()
-            recording_started = True
+        elif event.type in (KEYDOWN, KEYUP) and event.key == K_RETURN:
+            if not recording_started:
+                infoText = recordText
+                textRect = recordTextRect
+                sleep(0.5)
+                audio_recording.start_recording()
+                recording_start_timestamp = datetime.datetime.now().timestamp()
+                recording_started = True
 
-        if event.type == KEYUP and recording_started:
+        elif event.type == KEYUP and recording_started:
             ts = datetime.datetime.now().timestamp() - recording_start_timestamp
             key_presses.append({"timestamp": ts, "key": pygame.key.name(event.key), "direction": "up"})
 
-        if event.type == KEYDOWN and recording_started:
-            ts = datetime.datetime.now().timestamp() - recording_start_timestamp
+        elif event.type == KEYDOWN and recording_started:
+            # keydown_offset = -0.15  # compensate delay between real keypress and recorded keypress
+            ts = datetime.datetime.now().timestamp() - recording_start_timestamp  # + keydown_offset
             key_presses.append({"timestamp": ts, "key": pygame.key.name(event.key), "direction": "down"})
 
     screen.fill(COLORS['BLUE'])
