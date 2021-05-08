@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import scipy
 from scipy import signal
 from scipy.io import wavfile
 import pandas as pd
@@ -12,18 +13,44 @@ from scipy.signal import savgol_filter
 FILENAME = '2021_05_08_203330.903333'
 
 sample_rate, samples = wavfile.read(f'output/{FILENAME}.wav')
-
-
 frequencies, times, spectrogram = signal.spectrogram(samples, fs=sample_rate, nfft=512)
 
+# Find key up and key down in spectrogram
+myfreq = np.max(spectrogram[80:100, :], axis=0)
+myfreq = scipy.signal.medfilt(myfreq, 7)
+myfreq = np.log1p(myfreq) * 1000
+spectrogram_keypress = []
+keypress_threshold = 180
+current_keypress = {
+    'state': 'find_start'
+}
+# http://hyperphysics.phy-astr.gsu.edu/hbase/cm.html
 
-myfreq = spectrogram[80:100, :]
-myfreq = np.max(myfreq, axis=0)
-myfreq = savgol_filter(myfreq, 10, 2)
+for idx in range(myfreq.shape[0]):
+    if current_keypress['state'] == 'find_start':
+        if myfreq[idx] > keypress_threshold:
+            current_keypress['state'] = 'find_end'
+            current_keypress['mx'] = 0
+            current_keypress['m'] = 0
+
+    elif current_keypress['state'] == 'find_end':
+        if myfreq[idx] > keypress_threshold:
+            current_keypress['mx'] += myfreq[idx] * idx
+            current_keypress['m'] += myfreq[idx]
+        else:
+            center_of_mass = current_keypress['mx'] / current_keypress['m']
+            spectrogram_keypress.append(center_of_mass)
+            current_keypress['state'] = 'find_start'
+
+print(spectrogram_keypress)
+
+for keypress in spectrogram_keypress:
+    plt.plot([keypress*225, keypress*225], [0, 10000])
 
 
-#plt.plot(samples)
-plt.plot(np.arange(0, 250000, 225), np.log1p(myfreq[:1112])*500)
+plt.plot(samples)
+x = np.arange(0, 250000, 225)
+plt.plot(x, myfreq[:x.shape[0]])
 
 """
 plt.pcolormesh(
