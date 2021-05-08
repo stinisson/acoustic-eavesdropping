@@ -1,4 +1,6 @@
+*.whl
 *.csv
+*.wav
 .idea
 
 # Byte-compiled / optimized / DLL files

@@ -9,6 +9,8 @@ from pygame.locals import (
     KEYUP
 )
 
+from record_audio import Audio
+
 pygame.init()
 pygame.display.set_caption('Record keystrokes')
 
@@ -32,29 +34,32 @@ stopTextRect = stopText.get_rect()
 stopTextRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
 
-def save_to_file(key_strokes):
+def save_to_file(key_strokes, time_string):
     df = pd.DataFrame(key_strokes)
-    time_string = datetime.datetime.now().strftime("%Y-%m-%d %H%M%S.%f")
-    df.to_csv(f"keystroke_recording_{time_string}.csv")
+    df.to_csv(f"output/{time_string}_keystroke_recording.csv")
 
 
 key_presses = []
 recording_start_timestamp = None
 running = True
 recording_started = False
+audio_recording = Audio()
 while running:
 
     for event in pygame.event.get():
 
         if (event.type == KEYDOWN and event.key == K_ESCAPE) or event.type == pygame.QUIT:
             if recording_started:
-                save_to_file(key_presses)
+                time_string = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S.%f")
+                save_to_file(key_presses, time_string)
+                audio_recording.stop_recording(time_string)
             running = False
 
         if event.type == KEYDOWN and event.key == K_RETURN and not recording_started:
             infoText = recordText
             textRect = recordTextRect
             recording_start_timestamp = datetime.datetime.now().timestamp()
+            audio_recording.start_recording()
             recording_started = True
 
         if event.type == KEYUP and recording_started:
