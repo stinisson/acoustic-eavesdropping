@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -5,7 +6,6 @@ import scipy
 from scipy import signal
 from scipy.io import wavfile
 import pandas as pd
-from scipy.signal import savgol_filter
 
 
 FILENAME = '2021_05_08_203330.903333'
@@ -29,35 +29,45 @@ def find_keystrokes_in_amplitude(samples, sample_rate):
     return keystrokes
 
 
-def find_keystrokes_in_spectrogram():
-    # Find key up and key down in spectrogram
-    myfreq = np.max(spectrogram[80:100, :], axis=0)
-    myfreq = scipy.signal.medfilt(myfreq, 7)
-    myfreq = np.log1p(myfreq) * 1000
-    spectrogram_keypress = []
-    keypress_threshold = 180
+def find_keystrokes_in_spectrogram(frequencies, times, spectrogram):
+    # Find center of keystrokes, important for key up
+    # Will also find key down but will not be used
+
+    # Look at a frequency band where key presses are distinct
+    frequency_range = (6500, 8000)
+    frequency_idx_start = np.argmax(frequencies > frequency_range[0])
+    frequency_idx_end = np.argmax(frequencies > frequency_range[1])
+
+    frequency_band = spectrogram[frequency_idx_start:frequency_idx_end, :]
+    amplitudes = np.max(frequency_band, axis=0)
+    amplitudes = scipy.signal.medfilt(amplitudes, 7)
+
+    keystrokes = []
+    keypress_threshold = 0.15
     current_keypress = {
         'state': 'find_start'
     }
+
+    # Center of mass algorithm to find center of keystroke:
     # http://hyperphysics.phy-astr.gsu.edu/hbase/cm.html
 
-    for idx in range(myfreq.shape[0]):
+    for idx in range(amplitudes.shape[0]):
         if current_keypress['state'] == 'find_start':
-            if myfreq[idx] > keypress_threshold:
+            if amplitudes[idx] > keypress_threshold:
                 current_keypress['state'] = 'find_end'
                 current_keypress['mx'] = 0
                 current_keypress['m'] = 0
 
         elif current_keypress['state'] == 'find_end':
-            if myfreq[idx] > keypress_threshold:
-                current_keypress['mx'] += myfreq[idx] * idx
-                current_keypress['m'] += myfreq[idx]
+            if amplitudes[idx] > keypress_threshold:
+                current_keypress['mx'] += amplitudes[idx] * idx
+                current_keypress['m'] += amplitudes[idx]
             else:
-                center_of_mass = current_keypress['mx'] / current_keypress['m']
-                spectrogram_keypress.append(center_of_mass)
+                center_of_mass = math.floor(current_keypress['mx'] / current_keypress['m'])
+                keystrokes.append(times[center_of_mass])
                 current_keypress['state'] = 'find_start'
 
-    print(spectrogram_keypress)
+    return keystrokes
 
 
 def find_key_down():
@@ -92,8 +102,22 @@ def main():
     frequencies, times, spectrogram = signal.spectrogram(samples, fs=sample_rate, nfft=512)
 
     keystrokes_in_amplitude = find_keystrokes_in_amplitude(samples, sample_rate)
-    keystrokes_in_spectrogram = find_keystrokes_in_spectrogram()
+    keystrokes_in_spectrogram = find_keystrokes_in_spectrogram(frequencies, times, spectrogram)
 
+    x = np.arange(0, len(samples) / sample_rate, 1 / sample_rate)
+    plt.plot(x, samples / 100)
+
+    # plt.plot(times, amplitudes)
+
+    for keypress in keystrokes_in_amplitude:
+        plt.plot([keypress, keypress], [0, 100])
+
+    for keypress in keystrokes_in_spectrogram:
+        plt.plot([keypress, keypress], [0, 100])
+    plt.show()
+
+
+    """
     for keypress in keystrokes_in_amplitude:
         plt.plot([keypress*sample_rate, keypress*sample_rate], [0, 10000])
 
@@ -101,14 +125,13 @@ def main():
     #x = np.arange(0, 250000, 225)
     #plt.plot(x, myfreq[:x.shape[0]])
 
-    """
     plt.pcolormesh(
         times, frequencies, spectrogram,
         norm=colors.LogNorm(vmin=np.min(spectrogram), vmax=np.max(spectrogram))
     )
-    """
 
     plt.show()
+    """
 
 
 
