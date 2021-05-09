@@ -8,7 +8,7 @@ from scipy.io import wavfile
 import pandas as pd
 
 
-FILENAME = '2021_05_08_203330.903333'
+FILENAME = '2021_05_09_122120.809920'
 
 
 def find_keystrokes_in_amplitude(samples, sample_rate):
@@ -70,6 +70,38 @@ def find_keystrokes_in_spectrogram(frequencies, times, spectrogram):
     return keystrokes
 
 
+def match_keystrokes(keystrokes_in_amplitude, keystrokes_in_spectrogram):
+    # Match key up from amplitude and key down from spectrogram
+    key_up_match_threshold = 0.025
+    key_down_match_range = (0.1, 0.3)
+
+    keystrokes = []
+    amp_idx, spec_idx = 0, 0
+
+    while amp_idx < len(keystrokes_in_amplitude) and spec_idx + 1 < len(keystrokes_in_spectrogram):
+        amp_keystroke_down = keystrokes_in_amplitude[amp_idx]
+        spec_keystroke_down = keystrokes_in_spectrogram[spec_idx]
+        spec_keystroke_up = keystrokes_in_spectrogram[spec_idx + 1]
+
+        key_up_match = abs(amp_keystroke_down - spec_keystroke_down) < key_up_match_threshold
+        key_down_match = key_down_match_range[0] < spec_keystroke_up - amp_keystroke_down < key_down_match_range[1]
+
+        if key_up_match and key_down_match:
+            keystrokes.append({
+                'down': amp_keystroke_down,
+                'up': spec_keystroke_up
+            })
+            amp_idx += 1
+            spec_idx += 2
+        else:
+            if amp_keystroke_down > spec_keystroke_down:
+                spec_idx += 1
+            else:
+                amp_idx += 1
+
+    return keystrokes
+
+
 def find_key_down():
     valid_time_range = 0.04
     keystroke_down_offset = -0.03
@@ -104,16 +136,22 @@ def main():
     keystrokes_in_amplitude = find_keystrokes_in_amplitude(samples, sample_rate)
     keystrokes_in_spectrogram = find_keystrokes_in_spectrogram(frequencies, times, spectrogram)
 
+    matched_keystrokes = match_keystrokes(keystrokes_in_amplitude, keystrokes_in_spectrogram)
+
     x = np.arange(0, len(samples) / sample_rate, 1 / sample_rate)
     plt.plot(x, samples / 100)
 
     # plt.plot(times, amplitudes)
 
-    for keypress in keystrokes_in_amplitude:
-        plt.plot([keypress, keypress], [0, 100])
+    for keystroke in matched_keystrokes:
+        plt.plot([keystroke['down'], keystroke['down']], [0, 100])
+        plt.plot([keystroke['up'], keystroke['up']], [0, 50])
 
-    for keypress in keystrokes_in_spectrogram:
-        plt.plot([keypress, keypress], [0, 100])
+    #for keypress in keystrokes_in_amplitude:
+    #    plt.plot([keypress, keypress], [0, 100])
+
+    #for keypress in keystrokes_in_spectrogram:
+    #    plt.plot([keypress, keypress], [0, 100])
     plt.show()
 
 
