@@ -4,3 +4,6 @@ pyaudio # https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
 matplotlib
 numpy
 scipy
+librosa
+pydbub
+noisereduce
