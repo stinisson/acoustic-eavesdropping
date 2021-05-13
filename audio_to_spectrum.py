@@ -1,14 +1,13 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import scipy
 from scipy import signal
 from scipy.io import wavfile
 import pandas as pd
 
 
-FILENAME = '2021_05_09_122120.809920'
+FILENAME = 'f/2021_05_11_160157.429405'
 
 
 def find_keystrokes_in_amplitude(samples, sample_rate):
@@ -128,7 +127,7 @@ def find_key_down():
 def main():
     # https://stackoverflow.com/questions/44787437/how-to-convert-a-wav-file-to-a-spectrogram-in-python3
 
-    logged_keystrokes = pd.read_csv(f'output/{FILENAME}.csv')
+    # logged_keystrokes = pd.read_csv(f'output/{FILENAME}.csv')
     sample_rate, samples = wavfile.read(f'output/{FILENAME}.wav')
 
     frequencies, times, spectrogram = signal.spectrogram(samples, fs=sample_rate, nfft=512)
@@ -139,7 +138,11 @@ def main():
     matched_keystrokes = match_keystrokes(keystrokes_in_amplitude, keystrokes_in_spectrogram)
 
     x = np.arange(0, len(samples) / sample_rate, 1 / sample_rate)
-    plt.plot(x, samples / 100)
+    plt.title("Ljudinspelning av en tangenttryckning")
+    plt.xlabel('Tid (s)')
+    plt.ylabel('Signalstyrka')
+    # plt.plot(x, samples / 100)
+    plt.plot(x, samples / 10000)
 
     # plt.plot(times, amplitudes)
 
